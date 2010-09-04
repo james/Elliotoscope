@@ -18,7 +18,8 @@ class Wikipedia
   end
   
   def self.categories_for(title)
-    response = get("http://en.wikipedia.org/w/api.php?action=query&format=json&titles=#{CGI.escape(title)}&prop=categories")
+    response = get("http://en.wikipedia.org/w/api.php?action=query&format=json&titles=#{self.wikipedia_namify(title)}&prop=categories&cllimit=max")
+    p self.wikipedia_namify(title)
     categories = response.parsed_response["query"]["pages"].collect do |page|
       if page[1]["categories"]
         page[1]["categories"].collect{|x| x["title"]}
@@ -44,19 +45,31 @@ class Wikipedia
   end
   
   def self.wikipedia_namify(name)
-    CGI.escape(name.gsub(" ", "_"))
+    name.gsub(" ", "_")
   end
   
   def self.find_school_by_ofsted(ofsted_number)
     response = get("http://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srsearch=ofsted%20#{ofsted_number}")
-    response.parsed_response["query"]["search"][0]["title"]
+    if first_result = response.parsed_response["query"]["search"][0]
+      return first_result["title"]
+    else
+      return nil
+    end
+  end
+end
+
+def jsonp(content, callback=nil)
+  if callback
+    "#{callback}(#{content})"
+  else
+    content
   end
 end
 
 get '/things_associated_with' do
-  Wikipedia.things_associated_with(params[:name], params[:topic]).to_json
+  jsonp(Wikipedia.things_associated_with(params[:name], params[:topic]).to_json, params[:callback])
 end
 
 get '/school_from_ofsted' do
-  Wikipedia.find_school_by_ofsted(params[:ofsted_number])
+  jsonp(Wikipedia.find_school_by_ofsted(params[:ofsted_number]), params[:callback])
 end
