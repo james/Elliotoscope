@@ -51,7 +51,7 @@ class Wikipedia
   def self.find_school_by_ofsted(ofsted_number)
     response = get("http://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srsearch=ofsted%20#{ofsted_number}")
     if first_result = response.parsed_response["query"]["search"][0]
-      return first_result["title"]
+      return self.wikipedia_namify(first_result["title"])
     else
       return nil
     end
@@ -71,5 +71,9 @@ get '/things_associated_with' do
 end
 
 get '/school_from_ofsted' do
-  jsonp(Wikipedia.find_school_by_ofsted(params[:ofsted_number]), params[:callback])
+  jsonp(
+    {:response => 'success', :payload => Wikipedia.find_school_by_ofsted(params[:ofsted_number])}.to_json,
+    params[:callback]
+  )
 end
+set :public, File.dirname(__FILE__) + '/static'
